@@ -1,0 +1,56 @@
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+name: CI
+
+jobs:
+  format:
+    name: test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Install Rust toolchain
+        run: |
+          rustup update --no-self-update nightly
+          rustup component add --toolchain nightly rust-src
+          rustup default nightly
+
+      - name: test
+        run: cargo test --lib --features "log,gm02sp"
+
+  rustfmt:
+    name: fmt
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Install Rust toolchain
+        run: |
+          rustup update --no-self-update nightly
+          rustup component add --toolchain nightly rustfmt rust-src
+          rustup default nightly
+
+      - name: fmt
+        run: cargo fmt -- --check
+
+  clippy:
+    name: clippy
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Install Rust toolchain
+        run: |
+          rustup update --no-self-update nightly
+          rustup component add --toolchain nightly clippy rust-src
+          rustup default nightly
+
+      - name: clippy
+        run: cargo clippy --lib --features "log,gm02sp" --tests -- -D warnings
