@@ -1,0 +1,41 @@
+[package]
+name = "monarch2"
+version = "0.1.0"
+authors = ["Matous Dzivjak <matousdzivjak@gmail.com>"]
+description = "A driver crate for the Sequans Monarch 2 Platform chips."
+readme = "../README.md"
+keywords = ["sequans", "monarch2", "embedded-hal-driver"]
+categories = ["embedded", "no-std"]
+license = "Apache-2.0"
+repository = "https://github.com/sevents-os/sequans-rs"
+edition = "2024"
+
+[lib]
+name = "monarch2"
+doctest = true
+
+[dependencies]
+atat = { version = "0.24.0", features = ["derive"] }
+embassy-sync = { version = "0.7.0" }
+embassy-time = { version = "0.4.0" }
+heapless = { version = "0.8.0", default-features = false }
+jiff = { version = "0.2.14", default-features = false, features = ["perf-inline", "serde"] }
+serde = { version = "^1", default-features = false, features = ["derive"] }
+static_cell = { version = "2.1.0", features = ["nightly"] }
+
+defmt = { version = "^1", optional = true }
+log = { version = "^0.4", default-features = false, optional = true }
+
+[features]
+defmt = [
+  "dep:defmt",
+  "atat/defmt",
+  "embassy-time/defmt",
+  "embassy-sync/defmt",
+]
+log = [
+  "dep:log",
+  "atat/log",
+]
+
+gm02sp = []
