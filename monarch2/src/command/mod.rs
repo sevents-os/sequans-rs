@@ -2,7 +2,7 @@ use atat::{
     AtatLen,
     atat_derive::{AtatCmd, AtatEnum, AtatResp, AtatUrc},
 };
-use serde::{Serialize, Serializer};
+use serde::{Deserialize, Deserializer, Serialize, Serializer, de};
 
 pub mod device;
 #[cfg(feature = "gm02sp")]
@@ -95,4 +95,30 @@ impl Serialize for Reserved {
 impl AtatLen for Reserved {
     // 0 would result in the field being completely omitted which is not what we want.
     const LEN: usize = 1;
+}
+
+impl<'de> Deserialize<'de> for Reserved {
+    fn deserialize<D>(deserializer: D) -> Result<Reserved, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        struct ReservedVisitor;
+
+        impl<'de> de::Visitor<'de> for ReservedVisitor {
+            type Value = Reserved;
+
+            fn expecting(&self, formatter: &mut core::fmt::Formatter) -> core::fmt::Result {
+                formatter.write_str("a reserved field (ignored content)")
+            }
+
+            fn visit_bytes<E>(self, _v: &[u8]) -> Result<Self::Value, E>
+            where
+                E: de::Error,
+            {
+                Ok(Reserved)
+            }
+        }
+
+        deserializer.deserialize_any(ReservedVisitor)
+    }
 }

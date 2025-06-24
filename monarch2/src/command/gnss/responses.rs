@@ -6,8 +6,8 @@ use serde::{
 };
 
 use super::{
-    Bool,
-    types::{AcquisitionMode, FixSensitivity, LocationMode, UrcNotificationSetting},
+    Bool, Reserved,
+    types::{FixSensitivity, LocationMode, UrcNotificationSetting},
 };
 
 #[derive(Clone, AtatResp)]
@@ -23,12 +23,11 @@ pub struct GnssConfig {
     #[at_arg(position = 2)]
     pub urc_settings: UrcNotificationSetting,
 
+    #[at_arg(position = 3)]
+    pub reserved: Reserved,
+
     #[at_arg(position = 4)]
     pub metrics: Bool,
-
-    /// The acquisition mode.
-    #[at_arg(position = 5)]
-    pub acq_mode: AcquisitionMode,
 }
 
 /// This structure represents the details of a certain GNSS assistance type.

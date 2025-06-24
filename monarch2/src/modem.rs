@@ -1,6 +1,6 @@
 use core::cell::RefCell;
 
-use atat::{UrcChannel, UrcSubscription, asynch::AtatClient};
+use atat::{AtatCmd, UrcChannel, UrcSubscription, asynch::AtatClient};
 use embassy_sync::{
     blocking_mutex::{
         Mutex,
@@ -90,35 +90,34 @@ impl<'a, const N: usize, const L: usize> UrcHandler<'a, N, L> {
     pub async fn run(&mut self) -> ! {
         loop {
             let msg = self.urc_subscription.next_message_pure().await;
-            debug!("received message: {:?}", msg);
             match msg {
                 #[cfg(feature = "gm02sp")]
                 command::Urc::GnssFixReady(fix_ready) => {
-                    info!("GNSS fix ready: {:?}", fix_ready);
+                    debug!("GNSS fix ready: {:?}", fix_ready);
                     self.state.fix_subscriber.signal(fix_ready);
                 }
                 command::Urc::MqttConnected(connected) => {
-                    info!("MQTT connected: {:?}", connected);
+                    debug!("MQTT connected: {:?}", connected);
                     self.state.mqtt_connected.signal(connected);
                 }
                 command::Urc::MqttDisconnected(disconnected) => {
-                    info!("MQTT disconnected: {:?}", disconnected);
+                    debug!("MQTT disconnected: {:?}", disconnected);
                     // self.state.mqtt_connected.signal(connected);
                 }
                 command::Urc::MqttMessagePublished(published) => {
-                    info!("MQTT message published: {:?}", published);
+                    debug!("MQTT message published: {:?}", published);
                 }
                 command::Urc::MqttMessageReceived(received) => {
-                    info!("MQTT message received: {:?}", received);
+                    debug!("MQTT message received: {:?}", received);
                 }
                 command::Urc::MqttSubscribed(subscribed) => {
-                    info!("MQTT subscribed: {:?}", subscribed);
+                    debug!("MQTT subscribed: {:?}", subscribed);
                 }
                 command::Urc::Shutdown(shutdown) => {
-                    info!("Shutdown: {:?}", shutdown);
+                    debug!("Shutdown: {:?}", shutdown);
                 }
                 command::Urc::NetworkRegistrationStatus(status) => {
-                    info!("Network registration status: {:?}", status);
+                    debug!("Network registration status: {:?}", status);
                     self.state.reg_state.lock(|v| {
                         v.replace(status.stat);
                     });
@@ -170,6 +169,10 @@ where
         }
     }
 
+    pub async fn send<Cmd: AtatCmd>(&mut self, cmd: &Cmd) -> Result<Cmd::Response, Error> {
+        self.client.send(cmd).await.map_err(|e| e.into())
+    }
+
     /// Initializes the modem by sending basic configuration commands.
     ///
     /// This method must be called once before other modem operations are invoked.
@@ -182,17 +185,15 @@ where
             return Ok(());
         }
 
-        self.client
-            .send(&ConfigureCMEErrorReports {
-                typ: crate::command::system_features::types::CMEErrorReports::Numeric,
-            })
-            .await?;
+        self.send(&ConfigureCMEErrorReports {
+            typ: crate::command::system_features::types::CMEErrorReports::Numeric,
+        })
+        .await?;
 
-        self.client
-            .send(&ConfigureCEREGReports {
-                typ: crate::command::system_features::types::CEREGReports::Enabled,
-            })
-            .await?;
+        self.send(&ConfigureCEREGReports {
+            typ: crate::command::system_features::types::CEREGReports::Enabled,
+        })
+        .await?;
 
         self.initialized = true;
 
@@ -200,50 +201,48 @@ where
     }
 
     pub async fn get_operation_mode(&mut self) -> Result<RAT, Error> {
-        let res = self.client.send(&GetOperatingMode).await?;
+        let res = self.send(&GetOperatingMode).await?;
         Ok(res.rat)
     }
 
     pub async fn set_opeartion_mode(&mut self, mode: RAT) -> Result<(), Error> {
-        self.client.send(&SetOperatingMode { mode }).await?;
+        self.send(&SetOperatingMode { mode }).await?;
         Ok(())
     }
 
     pub async fn ping(&mut self) -> Result<(), Error> {
-        self.client.send(&command::AT).await?;
+        self.send(&command::AT).await?;
         Ok(())
     }
 
     pub async fn define_pdp_context(&mut self) -> Result<(), Error> {
-        self.client
-            .send(&DefinePDPContext {
-                cid: 1,
-                pdp_type: command::pdp::types::PDPType::IP,
-                apn: String::try_from("").unwrap(),
-                pdp_addr: String::try_from("").unwrap(),
-                d_comp: command::pdp::types::PDPDComp::default(),
-                h_comp: command::pdp::types::PDPHComp::default(),
-                ipv4_alloc: command::pdp::types::PDPIPv4Alloc::NAS,
-                request_type: command::pdp::types::PDPRequestType::NewOrHandover,
-                pdp_pcscf_discovery_method: command::pdp::types::PDPPCSCF::Auto,
-                for_imcn: Bool::False,
-                nslpi: Bool::False,
-                secure_pco: Bool::False,
-                ipv4_mtu_discovery: Bool::False,
-                local_addr_ind: Bool::False,
-                non_ip_mtu_discovery: Bool::False,
-            })
-            .await?;
+        self.send(&DefinePDPContext {
+            cid: 1,
+            pdp_type: command::pdp::types::PDPType::IP,
+            apn: String::try_from("").unwrap(),
+            pdp_addr: String::try_from("").unwrap(),
+            d_comp: command::pdp::types::PDPDComp::default(),
+            h_comp: command::pdp::types::PDPHComp::default(),
+            ipv4_alloc: command::pdp::types::PDPIPv4Alloc::NAS,
+            request_type: command::pdp::types::PDPRequestType::NewOrHandover,
+            pdp_pcscf_discovery_method: command::pdp::types::PDPPCSCF::Auto,
+            for_imcn: Bool::False,
+            nslpi: Bool::False,
+            secure_pco: Bool::False,
+            ipv4_mtu_discovery: Bool::False,
+            local_addr_ind: Bool::False,
+            non_ip_mtu_discovery: Bool::False,
+        })
+        .await?;
         Ok(())
     }
 
     pub async fn set_op_state(&mut self, mode: FunctionalMode) -> Result<(), Error> {
-        self.client
-            .send(&SetFunctionality {
-                fun: mode,
-                rst: None,
-            })
-            .await?;
+        self.send(&SetFunctionality {
+            fun: mode,
+            rst: None,
+        })
+        .await?;
         Ok(())
     }
 
@@ -264,12 +263,11 @@ where
         self.set_op_state(FunctionalMode::Full).await?;
 
         //  Set the network operator selection to automatic
-        self.client
-            .send(&PLMNSelection {
-                mode: command::network::types::NetworkSelectionMode::Automatic,
-                ..Default::default()
-            })
-            .await?;
+        self.send(&PLMNSelection {
+            mode: command::network::types::NetworkSelectionMode::Automatic,
+            ..Default::default()
+        })
+        .await?;
 
         loop {
             match self.get_network_registration_state() {
@@ -278,8 +276,8 @@ where
                 _ => {
                     Timer::after(Duration::from_millis(1000)).await;
 
-                    let signal = self.client.send(&GetSignalQuality).await?;
-                    info!("rssi: {:?}", signal);
+                    let signal = self.send(&GetSignalQuality).await?;
+                    debug!("rssi: {:?}", signal);
                 }
             }
         }
@@ -310,17 +308,16 @@ where
     AtCl: AtatClient,
 {
     pub async fn set_gnss_config(&mut self, sensitivity: FixSensitivity) -> Result<(), Error> {
-        self.client
-            .send(&SetGnssConfig {
-                location_mode: command::gnss::types::LocationMode::OnDeviceLocation,
-                fix_sensitivity: sensitivity,
-                urc_settings: command::gnss::types::UrcNotificationSetting::Full,
-                reserved: Reserved,
-                metrics: false.into(),
-                acquisition_mode: command::gnss::types::AcquisitionMode::ColdWarmStart,
-                early_abort: false.into(),
-            })
-            .await?;
+        self.send(&SetGnssConfig {
+            location_mode: command::gnss::types::LocationMode::OnDeviceLocation,
+            fix_sensitivity: sensitivity,
+            urc_settings: command::gnss::types::UrcNotificationSetting::Full,
+            reserved: Reserved,
+            metrics: false.into(),
+            acquisition_mode: command::gnss::types::AcquisitionMode::ColdWarmStart,
+            early_abort: false.into(),
+        })
+        .await?;
 
         Ok(())
     }
@@ -331,35 +328,35 @@ where
     // response. This function also sets a flag if any of the assistance databases
     // should be updated.
     pub async fn check_assistance_data(&mut self) -> Result<(), Error> {
-        let data = self.client.send(&GetGnssAssitance).await?;
+        let data = self.send(&GetGnssAssitance).await?;
 
         self.update_almanac = false;
         self.update_ephemeris = false;
 
         match data.almanac.available {
             Bool::True => {
-                info!(
+                debug!(
                     "Almanace data is available and should be updated within {}",
                     data.almanac.time_to_update
                 );
                 self.update_almanac = data.almanac.time_to_update <= 0;
             }
             Bool::False => {
-                info!("Almanace data is not available",);
+                debug!("Almanace data is not available",);
                 self.update_almanac = true;
             }
         }
 
         match data.realtime_ephemeris.available {
             Bool::True => {
-                info!(
+                debug!(
                     "Real-time ephemeris data is available and should be updated within {}",
                     data.realtime_ephemeris.time_to_update
                 );
                 self.update_ephemeris = data.realtime_ephemeris.time_to_update <= 0;
             }
             Bool::False => {
-                info!("ephemerise data is not available",);
+                debug!("ephemerise data is not available",);
                 self.update_ephemeris = true;
             }
         }
@@ -376,10 +373,10 @@ where
         self.lte_disconnect().await?;
 
         // Even with valid assistance data the system clock could be invalid
-        let mut clock = self.client.send(&GetClock).await?;
+        let mut clock = self.send(&GetClock).await?;
 
-        if clock.time.timestamp().is_zero() {
-            info!("Clock time out of sync, synchronizing");
+        if clock.time.0.timestamp().is_zero() {
+            debug!("Clock time out of sync, synchronizing");
 
             // The system clock is invalid, connect to LTE network to sync time
             self.lte_connect().await?;
@@ -388,13 +385,13 @@ where
             // with a delay of 500ms.
             for _ in 0..5 {
                 Timer::after(Duration::from_millis(500)).await;
-                clock = self.client.send(&GetClock).await?;
-                if !clock.time.timestamp().is_zero() {
+                clock = self.send(&GetClock).await?;
+                if !clock.time.0.timestamp().is_zero() {
                     break;
                 }
             }
 
-            if clock.time.timestamp().is_zero() {
+            if clock.time.0.timestamp().is_zero() {
                 return Err(Error::ClockSynchronization);
             }
         };
@@ -421,19 +418,17 @@ where
         // }
 
         if self.update_almanac {
-            self.client
-                .send(&UpdateGnssAssitance {
-                    typ: command::gnss::types::GnssAssitanceType::Almanac,
-                })
-                .await?;
+            self.send(&UpdateGnssAssitance {
+                typ: command::gnss::types::GnssAssitanceType::Almanac,
+            })
+            .await?;
         }
 
         if self.update_ephemeris {
-            self.client
-                .send(&UpdateGnssAssitance {
-                    typ: command::gnss::types::GnssAssitanceType::RealTimeEphemeris,
-                })
-                .await?;
+            self.send(&UpdateGnssAssitance {
+                typ: command::gnss::types::GnssAssitanceType::RealTimeEphemeris,
+            })
+            .await?;
         }
 
         // if (!modem.gnssGetAssistanceStatus(&rsp) ||
@@ -455,15 +450,14 @@ where
         // Fail if fix in progress?
         self.state.fix_subscriber.reset();
 
-        self.client
-            .send(&ProgramGnss {
-                action: command::gnss::types::ProgramGnssAction::Single,
-            })
-            .await?;
+        self.send(&ProgramGnss {
+            action: command::gnss::types::ProgramGnssAction::Single,
+        })
+        .await?;
 
         let fix = with_timeout(Duration::from_secs(300), self.state.fix_subscriber.wait()).await?;
 
-        info!("GNSS fix received: {:?}", fix);
+        debug!("GNSS fix received: {:?}", fix);
 
         Ok(fix)
     }
@@ -516,20 +510,19 @@ where
             },
         };
 
-        self.client.send(msg).await?;
+        self.send(msg).await?;
 
         Ok(())
     }
 
     pub async fn mqtt_connect(&mut self, host: &str) -> Result<(), Error> {
-        self.client
-            .send(&mqtt::Connect {
-                id: 0,
-                host,
-                port: None,
-                keepalive: None,
-            })
-            .await?;
+        self.send(&mqtt::Connect {
+            id: 0,
+            host,
+            port: None,
+            keepalive: None,
+        })
+        .await?;
 
         let connected =
             with_timeout(Duration::from_secs(30), self.state.mqtt_connected.wait()).await?;
@@ -547,20 +540,18 @@ where
         qos: mqtt::types::Qos,
         data: &[u8],
     ) -> Result<(), Error> {
-        self.client
-            .send(&mqtt::PreparePublish {
-                id: 0,
-                topic,
-                qos: Some(qos),
-                length: data.len(),
-            })
-            .await?;
+        self.send(&mqtt::PreparePublish {
+            id: 0,
+            topic,
+            qos: Some(qos),
+            length: data.len(),
+        })
+        .await?;
 
-        self.client
-            .send(&mqtt::Publish {
-                payload: atat::serde_bytes::Bytes::new(data),
-            })
-            .await?;
+        self.send(&mqtt::Publish {
+            payload: atat::serde_bytes::Bytes::new(data),
+        })
+        .await?;
 
         // TODO: wait for [`command::Urc::MqttMessagePublished`] URC.
 
@@ -568,7 +559,7 @@ where
     }
 
     pub async fn mqtt_disconnect(&mut self) -> Result<(), Error> {
-        self.client.send(&mqtt::Disconnect { id: 0 }).await?;
+        self.send(&mqtt::Disconnect { id: 0 }).await?;
         Ok(())
     }
 }

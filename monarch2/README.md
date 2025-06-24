@@ -2,6 +2,7 @@
 
 [![Crates.io Version](https://img.shields.io/crates/v/monarch2.svg?maxAge=3600)](https://crates.io/crates/monarch2)
 [![Crates.io Downloads](https://img.shields.io/crates/d/monarch2.svg?maxAge=3600)](https://crates.io/crates/monarch2)
+[![Documentation](https://docs.rs/monarch2/badge.svg)](https://docs.rs/monarch2)
 
 Module driver crate for Sequans [Monarch 2](https://sequans.com/products/monarch-2/) LTE Chipset Platform.
 

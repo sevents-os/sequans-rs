@@ -19,7 +19,7 @@ pub struct GetGnssConfig;
 
 /// Configures the GNSS (Global Navigation Satellite System) module.
 #[derive(Clone, AtatCmd)]
-#[at_cmd("+LPGNSSCFG", GnssConfig)]
+#[at_cmd("+LPGNSSCFG", NoResponse)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct SetGnssConfig {
     /// The GNSS location mode.
@@ -36,7 +36,6 @@ pub struct SetGnssConfig {
     #[at_arg(position = 3)]
     pub reserved: Reserved,
 
-    // Position 3 is reserved
     #[at_arg(position = 4)]
     pub metrics: Bool,
 
