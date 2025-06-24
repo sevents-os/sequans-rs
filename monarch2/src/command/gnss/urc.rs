@@ -6,7 +6,7 @@ use jiff::civil;
 static GNSS_MAX_SATS: usize = 32;
 
 /// This notification is received when a GNSS fix is available. The notification information depends on <urc_settings> and <metrics> configuration set by the [`SetGnssConfig` (AT+LPGNSSCFG)](super::SetGnssConfig) command.
-#[derive(Debug, Clone, AtatResp)]
+#[derive(Debug, Clone, PartialEq, AtatResp)]
 pub struct GnssFixReady {
     /// Fix identifier. The memory can store ten fixes. If no free slot remains, the oldest fix is overwritten.
     pub fix_id: u8,
@@ -115,10 +115,29 @@ mod tests {
 
     #[test]
     fn test_gnss_fix_ready_parsing() {
-        let input = "+LPGNSSFIXREADY: 0,\"2025-06-24T15:55:20.000000\",66563,\"20000000.000000\",\"0.000000\",\"0.000000\",\"0.000000\",\"0.000000\",\"0.000000\",\"0.000000\",\"+oyFVQ4AAADeYQAAAAAAAIADTG5IQAAAALCAxgJAAAAAAAAALkDoAwAAAwQBAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAADQEnNBAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAaMpaaAAAAAA=\"";
+        let input = b"+LPGNSSFIXREADY: 0,\"2025-06-24T15:55:20.000000\",66563,\"20000000.000000\",\"0.000000\",\"0.000000\",\"0.000000\",\"0.000000\",\"0.000000\",\"0.000000\",\"+oyFVQ4AAADeYQAAAAAAAIADTG5IQAAAALCAxgJAAAAAAAAALkDoAwAAAwQBAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAADQEnNBAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAaMpaaAAAAAA=\"";
 
-        let fix = GnssFixReady::parse(input.as_bytes());
+        let fix = GnssFixReady::parse(input);
 
-        assert_eq!(fix.unwrap().fix_id, 0);
+        assert_eq!(
+            fix,
+            Some(GnssFixReady {
+                fix_id: 0,
+                timestamp: civil::DateTime::from_parts(
+                    civil::date(2025, 6, 24),
+                    civil::time(15, 55, 20, 00)
+                ),
+                ttf: 66563,
+                confidence: 20000000.000000,
+                lat: 0.,
+                long: 0.,
+                elev: 0.,
+                north_speed: 0.,
+                east_speed: 0.,
+                down_speed: 0.,
+                sat_n_num: String::new(),
+                sat_cn0: Vec::new()
+            })
+        );
     }
 }

@@ -49,6 +49,8 @@ pub enum Urc {
 
     #[at_urc("+SHUTDOWN")]
     Shutdown(device::urc::Shutdown),
+    #[at_urc("+SYSSTART")]
+    Start(device::urc::Start),
 
     #[at_urc("+CEREG")]
     NetworkRegistrationStatus(network::urc::NetworkRegistrationStatus),

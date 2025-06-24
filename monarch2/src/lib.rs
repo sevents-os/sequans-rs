@@ -1,3 +1,4 @@
+#![feature(inherent_str_constructors)]
 #![cfg_attr(not(test), no_std)]
 
 //! # monarch2
