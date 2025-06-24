@@ -87,28 +87,3 @@ pub struct DefinePDPContext {
     #[at_arg(position = 14)]
     pub non_ip_mtu_discovery: Bool,
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use atat::serde_at::ser::to_slice;
-    use heapless::String;
-
-    #[test]
-    fn test_pdp_type() {
-        let options = atat::serde_at::SerializeOptions {
-            value_sep: false,
-            ..atat::serde_at::SerializeOptions::default()
-        };
-
-        let mut buf = heapless::Vec::<_, 8>::new();
-        buf.resize_default(8).unwrap();
-        let written = to_slice(&PDPType::IP, "", &mut buf, options).unwrap();
-        buf.resize_default(written).unwrap();
-
-        assert_eq!(
-            String::<8>::from_utf8(buf).unwrap(),
-            String::<8>::try_from("\"IP\"").unwrap()
-        );
-    }
-}

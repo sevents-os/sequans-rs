@@ -4,6 +4,7 @@ use atat::{
 };
 use serde::{Deserialize, Deserializer, Serialize, Serializer, de};
 
+pub mod coap;
 pub mod device;
 #[cfg(feature = "gm02sp")]
 pub mod gnss;
@@ -51,12 +52,15 @@ pub enum Urc {
 
     #[at_urc("+CEREG")]
     NetworkRegistrationStatus(network::urc::NetworkRegistrationStatus),
+
+    #[at_urc("+SQNCOAPCONNECTED")]
+    CoapConnected(coap::urc::Connected),
 }
 
 /// Custom boolean needed for communication with the Sequans Monarch 2 chips.
 /// The ATAT commands use 0 and 1 to represent booleans which isn't compatible
 /// with atat and thus require custom implementation.
-#[derive(Clone, PartialEq, AtatEnum, Default)]
+#[derive(Clone, Debug, PartialEq, AtatEnum, Default)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 #[at_enum(u8)]
 pub enum Bool {

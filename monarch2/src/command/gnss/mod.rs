@@ -50,7 +50,7 @@ pub struct SetGnssConfig {
 
 /// Triggers a connection to the GNSS cloud, downloads the almanac or the ephemeris files and stores them in persistent memory. This AT command only works with an available LTE connection.
 #[derive(Clone, AtatCmd)]
-#[at_cmd("+LPGNSSASSISTANCE", GnssAsssitance)]
+#[at_cmd("+LPGNSSASSISTANCE", NoResponse)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct UpdateGnssAssitance {
     /// The GNSS location mode.
@@ -60,7 +60,7 @@ pub struct UpdateGnssAssitance {
 
 /// Verify the status of the assistance, or check if an update is required. If both the real-time and predicted ephemeris are valid when a fix is requested, the real-time ephemeris takes precedence.
 #[derive(Clone, AtatCmd)]
-#[at_cmd("+LPGNSSASSISTANCE?", GnssAsssitance)]
+#[at_cmd("+LPGNSSASSISTANCE?", heapless::Vec<GnssAsssitance, 3>)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct GetGnssAssitance;
 
@@ -76,11 +76,11 @@ pub struct GetGnssAssitance;
 /// _IN_PROGRESS: Another fix is already being processed.
 /// • NO_VALID_EPHEMERIS_FOR_ON-DEVICE_NAVIGATION: No ephemeris is available and <loc _mode> has been set to "on-device location" by AT+LPGNSSCFG (on page 231).
 #[derive(Clone, AtatCmd)]
-#[at_cmd("+LPGNSSFIXPROG", GnssAsssitance)]
+#[at_cmd("+LPGNSSFIXPROG", NoResponse)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct ProgramGnss {
     /// The GNSS location mode.
-    #[at_arg(position = 0)]
+    #[at_arg(position = 0, len = 8)]
     pub action: ProgramGnssAction,
 }
 

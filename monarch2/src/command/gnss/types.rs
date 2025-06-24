@@ -1,5 +1,5 @@
 use atat::atat_derive::{AtatEnum, AtatLen};
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Serialize, Serializer};
 
 #[derive(Clone, PartialEq, AtatEnum, Default)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
@@ -17,8 +17,12 @@ pub enum LocationMode {
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 #[at_enum(u8)]
 pub enum GnssAssitanceType {
+    /// Almanac data details, this is not needed when real-time ephemeris data is available.
     Almanac = 0,
+    /// Real-time ephemeris data details. Use this kind of assistance data for the fastest and
+    /// most power efficient GNSS fix.
     RealTimeEphemeris = 1,
+    /// Predicted ephemeris data details.
     PredictedEphemeris = 2,
 }
 
@@ -55,18 +59,52 @@ pub enum AcquisitionMode {
     HotStart = 1,
 }
 
-#[derive(Clone, Debug, Default, PartialEq, AtatEnum)]
+#[derive(Clone, Debug, Default, PartialEq)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum ProgramGnssAction {
     /// Programs a fix.
-    #[at_enum("single")]
     #[default]
     Single,
     /// Cancels a previously programmed fix.
-    #[at_enum("stop")]
     Stop,
+}
+
+impl Serialize for ProgramGnssAction {
+    fn serialize<S>(&self, serializer: S) -> core::result::Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        match *self {
+            Self::Single => Serializer::serialize_bytes(serializer, b"\"single\""),
+            Self::Stop => Serializer::serialize_bytes(serializer, b"\"stop\""),
+        }
+    }
 }
 
 #[derive(Clone, Debug, PartialEq, AtatLen, Serialize, Deserialize)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct Meters(pub f32);
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use atat::serde_at::ser::to_slice;
+
+    #[test]
+    fn test_pdp_type() {
+        let options = atat::serde_at::SerializeOptions {
+            value_sep: false,
+            ..atat::serde_at::SerializeOptions::default()
+        };
+
+        let mut buf = heapless::Vec::<_, 8>::new();
+        buf.resize_default(8).unwrap();
+        let written = to_slice(&ProgramGnssAction::Single, "", &mut buf, options).unwrap();
+        buf.resize_default(written).unwrap();
+
+        assert_eq!(
+            heapless::String::<8>::from_utf8(buf).unwrap(),
+            heapless::String::<8>::try_from("\"single\"").unwrap()
+        );
+    }
+}

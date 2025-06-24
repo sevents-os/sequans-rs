@@ -16,7 +16,7 @@ use crate::{
     command::{
         self, Urc,
         device::{GetOperatingMode, SetOperatingMode, types::RAT},
-        mobile_equipment::{GetSignalQuality, SetFunctionality, types::FunctionalMode},
+        mobile_equipment::{SetFunctionality, types::FunctionalMode},
         mqtt::{self, types::MQTTStatusCode},
         network::{PLMNSelection, types::NetworkRegistrationState},
         pdp::DefinePDPContext,
@@ -115,6 +115,9 @@ impl<'a, const N: usize, const L: usize> UrcHandler<'a, N, L> {
                 }
                 command::Urc::Shutdown(shutdown) => {
                     debug!("Shutdown: {:?}", shutdown);
+                }
+                command::Urc::CoapConnected(conn) => {
+                    debug!("COAP connected: {:?}", conn);
                 }
                 command::Urc::NetworkRegistrationStatus(status) => {
                     debug!("Network registration status: {:?}", status);
@@ -275,9 +278,8 @@ where
                 NetworkRegistrationState::RegisteredRoaming => break,
                 _ => {
                     Timer::after(Duration::from_millis(1000)).await;
-
-                    let signal = self.send(&GetSignalQuality).await?;
-                    debug!("rssi: {:?}", signal);
+                    // let signal = self.send(&GetSignalQuality).await?;
+                    // debug!("rssi: {:?}", signal);
                 }
             }
         }
@@ -328,36 +330,48 @@ where
     // response. This function also sets a flag if any of the assistance databases
     // should be updated.
     pub async fn check_assistance_data(&mut self) -> Result<(), Error> {
+        use crate::gnss::responses::GnssAsssitance;
+
         let data = self.send(&GetGnssAssitance).await?;
 
         self.update_almanac = false;
         self.update_ephemeris = false;
 
-        match data.almanac.available {
-            Bool::True => {
-                debug!(
-                    "Almanace data is available and should be updated within {}",
-                    data.almanac.time_to_update
-                );
-                self.update_almanac = data.almanac.time_to_update <= 0;
-            }
-            Bool::False => {
-                debug!("Almanace data is not available",);
-                self.update_almanac = true;
-            }
-        }
-
-        match data.realtime_ephemeris.available {
-            Bool::True => {
-                debug!(
-                    "Real-time ephemeris data is available and should be updated within {}",
-                    data.realtime_ephemeris.time_to_update
-                );
-                self.update_ephemeris = data.realtime_ephemeris.time_to_update <= 0;
-            }
-            Bool::False => {
-                debug!("ephemerise data is not available",);
-                self.update_ephemeris = true;
+        for GnssAsssitance {
+            typ,
+            available,
+            time_to_update,
+            ..
+        } in data
+        {
+            match typ {
+                crate::gnss::types::GnssAssitanceType::Almanac => match available {
+                    Bool::True => {
+                        debug!(
+                            "almanace data is available and should be updated within {}",
+                            time_to_update
+                        );
+                        self.update_almanac = time_to_update <= 0;
+                    }
+                    Bool::False => {
+                        debug!("almanace data is not available",);
+                        self.update_almanac = true;
+                    }
+                },
+                crate::gnss::types::GnssAssitanceType::RealTimeEphemeris => match available {
+                    Bool::True => {
+                        debug!(
+                            "real-time ephemeris data is available and should be updated within {}",
+                            time_to_update
+                        );
+                        self.update_ephemeris = time_to_update <= 0;
+                    }
+                    Bool::False => {
+                        debug!("real-time ephemerise data is not available",);
+                        self.update_ephemeris = true;
+                    }
+                },
+                crate::gnss::types::GnssAssitanceType::PredictedEphemeris => {}
             }
         }
 
@@ -391,6 +405,8 @@ where
                 }
             }
 
+            self.lte_disconnect().await?;
+
             if clock.time.0.timestamp().is_zero() {
                 return Err(Error::ClockSynchronization);
             }
@@ -400,22 +416,10 @@ where
         self.check_assistance_data().await?;
 
         if !self.update_almanac && !self.update_ephemeris {
-            //     if (lteConnected) {
-            //         if (!lteDisconnect()) {
-            //             ESP_LOGE(TAG, "Could not disconnect from the LTE network");
-            //             return false;
-            //         }
-            //     }
-
             return Ok(());
         }
 
-        // if (!lteConnected) {
-        //     if (!lteConnect()) {
-        //         ESP_LOGE(TAG, "Could not connect to LTE network");
-        //         return false;
-        //     }
-        // }
+        self.lte_connect().await?;
 
         if self.update_almanac {
             self.send(&UpdateGnssAssitance {
@@ -431,18 +435,16 @@ where
             .await?;
         }
 
-        // if (!modem.gnssGetAssistanceStatus(&rsp) ||
-        //     rsp.type != WALTER_MODEM_RSP_DATA_TYPE_GNSS_ASSISTANCE_DATA) {
-        //     ESP_LOGE(TAG, "Could not request GNSS assistance status");
-        //     return false;
-        // }
+        for _ in 0..10 {
+            Timer::after(Duration::from_secs(10)).await;
+            self.check_assistance_data().await?;
+            if !self.update_almanac && !self.update_ephemeris {
+                break;
+            }
+        }
 
-        // if (!lteDisconnect()) {
-        //     ESP_LOGE(TAG, "Could not disconnect from the LTE network");
-        //     return false;
-        // }
+        self.lte_disconnect().await?;
 
-        // return true;
         Ok(())
     }
 
@@ -455,7 +457,7 @@ where
         })
         .await?;
 
-        let fix = with_timeout(Duration::from_secs(300), self.state.fix_subscriber.wait()).await?;
+        let fix = with_timeout(Duration::from_secs(180), self.state.fix_subscriber.wait()).await?;
 
         debug!("GNSS fix received: {:?}", fix);
 

@@ -62,6 +62,7 @@ pub enum PDPPCSCF {
 
 /// The supported packet data protocol types.
 #[derive(Clone, PartialEq)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum PDPType {
     IP,
     IPv4V6,
@@ -133,5 +134,29 @@ impl<'de> Deserialize<'de> for PDPType {
         }
 
         deserializer.deserialize_bytes(PDPTypeVisitor)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use atat::serde_at::ser::to_slice;
+
+    #[test]
+    fn test_pdp_type() {
+        let options = atat::serde_at::SerializeOptions {
+            value_sep: false,
+            ..atat::serde_at::SerializeOptions::default()
+        };
+
+        let mut buf = heapless::Vec::<_, 8>::new();
+        buf.resize_default(8).unwrap();
+        let written = to_slice(&PDPType::IP, "", &mut buf, options).unwrap();
+        buf.resize_default(written).unwrap();
+
+        assert_eq!(
+            heapless::String::<8>::from_utf8(buf).unwrap(),
+            heapless::String::<8>::try_from("\"IP\"").unwrap()
+        );
     }
 }
