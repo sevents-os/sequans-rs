@@ -47,10 +47,13 @@ pub enum Urc {
     #[at_urc("+SQNSMQTTONSUBSCRIBE")]
     MqttSubscribed(mqtt::urc::Subscribed),
 
+    /// The + SHUTDOWN URC indicates that the ME has completed the shutdown procedure and is about to restart.
     #[at_urc("+SHUTDOWN")]
-    Shutdown(device::urc::Shutdown),
+    Shutdown,
+
+    /// The +SYSSTART URC indicates that the ME has started (or restarted after a AT^ RESET) and is ready to operate.
     #[at_urc("+SYSSTART")]
-    Start(device::urc::Start),
+    Start,
 
     #[at_urc("+CEREG")]
     NetworkRegistrationStatus(network::urc::NetworkRegistrationStatus),
@@ -126,5 +129,18 @@ impl<'de> Deserialize<'de> for Reserved {
         }
 
         deserializer.deserialize_any(ReservedVisitor)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use atat::Parser;
+
+    #[test]
+    fn test_urc_parse() {
+        let input = b"\r\n+LPGNSSFIXREADY: 0,\"2025-06-24T15:55:20.000000\",66563,\"20000000.000000\",\"0.000000\",\"0.000000\",\"0.000000\",\"0.000000\",\"0.000000\",\"0.000000\",\"+oyFVQ4AAADeYQAAAAAAAIADTG5IQAAAALCAxgJAAAAAAAAALkDoAwAAAwQBAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAADQEnNBAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAaMpaaAAAAAA=\"\r\n";
+        let x = Urc::parse(input);
+        assert_eq!(708, x.unwrap().1);
     }
 }

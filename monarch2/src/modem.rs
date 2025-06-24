@@ -113,10 +113,10 @@ impl<'a, const N: usize, const L: usize> UrcHandler<'a, N, L> {
                 command::Urc::MqttSubscribed(subscribed) => {
                     debug!("MQTT subscribed: {:?}", subscribed);
                 }
-                command::Urc::Shutdown(_) => {
+                command::Urc::Shutdown => {
                     debug!("Device shutdown");
                 }
-                command::Urc::Start(_) => {
+                command::Urc::Start => {
                     debug!("Device started");
                 }
                 command::Urc::CoapConnected(conn) => {

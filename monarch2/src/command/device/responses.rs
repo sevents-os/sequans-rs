@@ -1,6 +1,6 @@
 use core::str::FromStr;
 
-use atat::{AtatResp, atat_derive::AtatResp, serde_at::serde::Deserialize};
+use atat::{atat_derive::AtatResp, serde_at::serde::Deserialize};
 use jiff::{
     Timestamp, Zoned,
     civil::DateTime,
@@ -19,8 +19,6 @@ pub struct Clock {
 
 #[derive(Clone, Debug)]
 pub struct Time(pub Zoned);
-
-impl AtatResp for Time {}
 
 impl<'de> Deserialize<'de> for Time {
     /// Deserializes current time from the modem clock response.
