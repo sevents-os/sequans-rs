@@ -78,7 +78,7 @@ pub struct Configure {
     ///
     /// The factory default value is an empty string, meaning empty key identity defined
     #[at_arg(position = 8)]
-    pub psk_identity: Option<String<64>>,
+    pub psk_identity: String<64>,
 
     /// Private key storage id used to identify whether key stored on NVM or HCE.
     #[at_arg(position = 9)]

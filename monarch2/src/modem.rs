@@ -23,6 +23,7 @@ use crate::{
         system_features::{ConfigureCEREGReports, ConfigureCMEErrorReports},
     },
     error::Error,
+    nvm, ssl_tls,
 };
 #[cfg(feature = "gm02sp")]
 use crate::{
@@ -600,6 +601,77 @@ where
     pub async fn mqtt_disconnect(&mut self) -> Result<(), Error> {
         self.send(&mqtt::Disconnect { id: 0 }).await?;
         self.lte_disconnect().await?;
+        Ok(())
+    }
+}
+
+impl<'sub, AtCl, const N: usize, const L: usize> Modem<'sub, AtCl, N, L>
+where
+    AtCl: AtatClient,
+{
+    pub async fn nvm_write(
+        &mut self,
+        data_type: nvm::types::DataType,
+        index: u8,
+        data: &[u8],
+    ) -> Result<(), Error> {
+        debug!("Writing to nvm");
+
+        assert!(
+            !(0..=4).contains(&index) && !(7..=10).contains(&index),
+            "Indexes O to 4 and 7 to 10 are reserved for Sequans's internal use."
+        );
+
+        self.send(&nvm::PrepareWrite {
+            data_type,
+            index,
+            size: data.len(),
+        })
+        .await?;
+
+        debug!("NVM write ready");
+
+        self.send(&nvm::Write {
+            data: atat::serde_bytes::Bytes::new(data),
+        })
+        .await?;
+
+        debug!("NVM written");
+
+        Ok(())
+    }
+}
+
+impl<'sub, AtCl, const N: usize, const L: usize> Modem<'sub, AtCl, N, L>
+where
+    AtCl: AtatClient,
+{
+    /// Configures TLS/SSL security profile for use with e.g. MQTT.
+    ///
+    /// Certificates first need to be written to NVM (boot persistent).
+    pub async fn configure_tls_profile(
+        &mut self,
+        sp_id: u8,
+        ca_cert_id: u8,
+        client_cert_id: u8,
+        client_private_key_id: u8,
+    ) -> Result<(), Error> {
+        self.send(&ssl_tls::Configure {
+            sp_id,
+            version: ssl_tls::types::SslTlsVersion::Tls12,
+            cipher_specs: String::new(),
+            cert_valid_level: 0,
+            ca_cert_id,
+            client_cert_id,
+            client_private_key_id,
+            psk: String::new(),
+            psk_identity: String::new(),
+            storage_id: ssl_tls::types::StorageId::NVM,
+            resume: ssl_tls::types::Resume::Disabled,
+            lifetime: 0,
+        })
+        .await?;
+
         Ok(())
     }
 }
