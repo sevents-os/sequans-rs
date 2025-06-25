@@ -6,6 +6,10 @@
 
 Module driver crate for Sequans [Monarch 2](https://sequans.com/products/monarch-2/) LTE Chipset Platform.
 
+## Notice
+
+This crate is work in progress. New features are introduced as I test with https://www.quickspot.io. Contributions are welcomed.
+
 ## Links
 
 - [AT Commands Documentation](https://quickspot.io/docs/file/gm02s_at_commands.pdf)

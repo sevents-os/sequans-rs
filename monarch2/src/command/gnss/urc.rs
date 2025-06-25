@@ -2,26 +2,10 @@ use atat::atat_derive::AtatResp;
 use jiff::civil;
 use serde::{Deserialize, Deserializer, de};
 
+use crate::gnss::types::QuotedF32;
+
 /// The maximum number of tracked GNSS satellites.
 static GNSS_MAX_SATS: usize = 32;
-
-#[derive(Debug, Clone, Copy, PartialEq)]
-#[cfg_attr(feature = "defmt", derive(defmt::Format))]
-pub struct QuotedF32(pub f32);
-
-impl<'de> Deserialize<'de> for QuotedF32 {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        let s: &str = Deserialize::deserialize(deserializer)?;
-        let num = s
-            .trim_matches('"')
-            .parse()
-            .map_err(serde::de::Error::custom)?;
-        Ok(QuotedF32(num))
-    }
-}
 
 /// This notification is received when a GNSS fix is available. The notification information depends on <urc_settings> and <metrics> configuration set by the [`SetGnssConfig` (AT+LPGNSSCFG)](super::SetGnssConfig) command.
 #[derive(Debug, Clone, PartialEq, AtatResp)]

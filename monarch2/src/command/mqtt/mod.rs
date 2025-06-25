@@ -1,10 +1,10 @@
 use atat::atat_derive::AtatCmd;
 use heapless::String;
 use types::Qos;
-use urc::PublishResponse;
 
 use super::NoResponse;
 
+pub mod responses;
 pub mod types;
 pub mod urc;
 
@@ -96,7 +96,7 @@ pub struct Connect<'a> {
 ///
 /// ‹pmid> provides the publishing message id. <c> provides the publishing result code: O if success, otherwise an error code, in which case the message is not published.
 #[derive(Clone, AtatCmd)]
-#[at_cmd("+SQNSMQTTPUBLISH", NoResponse, timeout = 300)]
+#[at_cmd("+SQNSMQTTPUBLISH", NoResponse, termination = "\r")]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct PreparePublish<'a> {
     /// Client ID. The only supported value is 0 - 1 client.
@@ -104,7 +104,7 @@ pub struct PreparePublish<'a> {
     pub id: u8,
 
     /// The topic the client wants to publish to.
-    #[at_arg(position = 1, len = 128)]
+    #[at_arg(position = 1, len = 64)]
     pub topic: &'a str,
 
     /// The quality of service level to request for the subscription.
@@ -121,11 +121,11 @@ pub struct PreparePublish<'a> {
 #[derive(Clone, AtatCmd)]
 #[at_cmd(
     "",
-    PublishResponse,
-    value_sep = false,
-    timeout = 300,
+    NoResponse,
     cmd_prefix = "",
-    termination = ""
+    termination = "",
+    value_sep = false,
+    timeout = 300
 )]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct Publish<'a> {

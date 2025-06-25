@@ -113,6 +113,9 @@ impl<'a, const N: usize, const L: usize> UrcHandler<'a, N, L> {
                 command::Urc::MqttSubscribed(subscribed) => {
                     debug!("MQTT subscribed: {:?}", subscribed);
                 }
+                command::Urc::MqttPromptToPublish(prompt) => {
+                    debug!("MQTT prompt to publish: {:?}", prompt);
+                }
                 command::Urc::Shutdown => {
                     debug!("Device shutdown");
                 }
@@ -332,7 +335,7 @@ where
     // This function checks the availability of assistance data in the modem's
     // response. This function also sets a flag if any of the assistance databases
     // should be updated.
-    pub async fn check_assistance_data(&mut self) -> Result<(), Error> {
+    async fn check_assistance_data(&mut self) -> Result<(), Error> {
         use crate::gnss::responses::GnssAsssitance;
 
         let data = self.send(&GetGnssAssitance).await?;
@@ -452,7 +455,8 @@ where
     }
 
     pub async fn get_gnss_fix(&mut self) -> Result<GnssFixReady, Error> {
-        // Fail if fix in progress?
+        use embassy_time::TimeoutError;
+
         self.state.fix_subscriber.reset();
 
         self.send(&ProgramGnss {
@@ -460,11 +464,22 @@ where
         })
         .await?;
 
-        let fix = with_timeout(Duration::from_secs(180), self.state.fix_subscriber.wait()).await?;
+        match with_timeout(Duration::from_secs(180), self.state.fix_subscriber.wait()).await {
+            Ok(fix) => {
+                debug!("GNSS fix received: {:?}", fix);
+                Ok(fix)
+            }
+            Err(TimeoutError) => {
+                debug!("GNSS fix timed out");
 
-        debug!("GNSS fix received: {:?}", fix);
+                self.send(&ProgramGnss {
+                    action: command::gnss::types::ProgramGnssAction::Stop,
+                })
+                .await?;
 
-        Ok(fix)
+                Err(TimeoutError.into())
+            }
+        }
     }
 }
 
@@ -495,9 +510,13 @@ impl<'sub, AtCl, const N: usize, const L: usize> Modem<'sub, AtCl, N, L>
 where
     AtCl: AtatClient,
 {
-    pub async fn mqtt_configure(&mut self, client_id: &str, auth: MqttAuth) -> Result<(), Error> {
+    pub async fn mqtt_configure(
+        &mut self,
+        client_id: &str,
+        auth: Option<MqttAuth>,
+    ) -> Result<(), Error> {
         let msg = match auth {
-            MqttAuth::UsernamePassword(UsernamePassword { username, password }) => {
+            Some(MqttAuth::UsernamePassword(UsernamePassword { username, password })) => {
                 &mqtt::Configure {
                     id: 0,
                     client_id,
@@ -506,12 +525,19 @@ where
                     sp_id: None,
                 }
             }
-            MqttAuth::SecurityProfile(SecurityProfile { id }) => &mqtt::Configure {
+            Some(MqttAuth::SecurityProfile(SecurityProfile { id })) => &mqtt::Configure {
                 id: 0,
                 client_id,
                 username: None,
                 password: None,
                 sp_id: Some(id),
+            },
+            None => &mqtt::Configure {
+                id: 0,
+                client_id,
+                username: None,
+                password: None,
+                sp_id: None,
             },
         };
 
@@ -521,6 +547,8 @@ where
     }
 
     pub async fn mqtt_connect(&mut self, host: &str) -> Result<(), Error> {
+        self.lte_connect().await?;
+
         self.send(&mqtt::Connect {
             id: 0,
             host,
@@ -532,11 +560,13 @@ where
         let connected =
             with_timeout(Duration::from_secs(30), self.state.mqtt_connected.wait()).await?;
 
-        if connected.rc != MQTTStatusCode::Success {
-            error!("MQTT connect error: {:?}", connected.rc);
+        match connected.rc {
+            MQTTStatusCode::Success => Ok(()),
+            status => {
+                error!("MQTT connect error: {:?}", connected.rc);
+                Err(Error::MQTT(status))
+            }
         }
-
-        Ok(())
     }
 
     pub async fn mqtt_send(
@@ -545,6 +575,8 @@ where
         qos: mqtt::types::Qos,
         data: &[u8],
     ) -> Result<(), Error> {
+        debug!("Sending MQTT message");
+
         self.send(&mqtt::PreparePublish {
             id: 0,
             topic,
@@ -553,18 +585,21 @@ where
         })
         .await?;
 
+        debug!("MQTT publish prepared");
+
         self.send(&mqtt::Publish {
             payload: atat::serde_bytes::Bytes::new(data),
         })
         .await?;
 
-        // TODO: wait for [`command::Urc::MqttMessagePublished`] URC.
+        debug!("MQTT publish Sent");
 
         Ok(())
     }
 
     pub async fn mqtt_disconnect(&mut self) -> Result<(), Error> {
         self.send(&mqtt::Disconnect { id: 0 }).await?;
+        self.lte_disconnect().await?;
         Ok(())
     }
 }

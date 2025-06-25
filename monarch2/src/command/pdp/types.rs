@@ -143,7 +143,7 @@ mod tests {
     use atat::serde_at::ser::to_slice;
 
     #[test]
-    fn test_pdp_type() {
+    fn pdp_type_parsing() {
         let options = atat::serde_at::SerializeOptions {
             value_sep: false,
             ..atat::serde_at::SerializeOptions::default()

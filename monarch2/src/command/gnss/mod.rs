@@ -5,6 +5,8 @@ use types::{
     UrcNotificationSetting,
 };
 
+use crate::gnss::types::QuotedF32;
+
 use super::{Bool, NoResponse, Reserved};
 
 pub mod responses;
@@ -16,6 +18,28 @@ pub mod urc;
 #[at_cmd("+LPGNSSCFG?", GnssConfig)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct GetGnssConfig;
+
+/// This AT command is used to set the GNSS approximate position as a hint for the next fix. It must be accurate within 100 km if <acq_mode> configuration is set to hot start by AT+LPGNSSCFG command.
+///
+/// Unless set by this command, the default values after power-on/reset are those of Paris (latitude: 48.8616948, longitude: 2.3469252, altitude: 15).
+///
+/// For subsequent fixes, unless overridden by this command, the last successful fix is taken as the approximate position.
+#[derive(Clone, AtatCmd)]
+#[at_cmd("+LPGNSSCFG", NoResponse)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
+pub struct SetApproximatePositionAssitance {
+    /// Approximate latitude in decimal degree (DD) format. Range is -90..90.
+    #[at_arg(position = 0)]
+    pub lat: QuotedF32,
+
+    /// Approximate longitude in decimal degree (DD) format. Range is -180.180.
+    #[at_arg(position = 1)]
+    pub long: QuotedF32,
+
+    /// Approximate elevation in metres. Range is -500..10000. This parameter is optional, but recommended.
+    #[at_arg(position = 2)]
+    pub elev: Option<QuotedF32>,
+}
 
 /// Configures the GNSS (Global Navigation Satellite System) module.
 #[derive(Clone, AtatCmd)]

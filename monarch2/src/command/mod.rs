@@ -46,6 +46,8 @@ pub enum Urc {
     MqttMessageReceived(mqtt::urc::Received),
     #[at_urc("+SQNSMQTTONSUBSCRIBE")]
     MqttSubscribed(mqtt::urc::Subscribed),
+    #[at_urc("+SQNSMQTTPUBLISH")]
+    MqttPromptToPublish(mqtt::urc::PromptToPublish),
 
     /// The + SHUTDOWN URC indicates that the ME has completed the shutdown procedure and is about to restart.
     #[at_urc("+SHUTDOWN")]

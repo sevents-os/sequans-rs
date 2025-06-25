@@ -86,3 +86,10 @@ pub struct Subscribed {
     #[at_arg(position = 2)]
     pub rc: MQTTStatusCode,
 }
+
+#[derive(Debug, Clone, AtatResp)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
+pub struct PromptToPublish {
+    #[at_arg(position = 0)]
+    pub pmid: u8,
+}

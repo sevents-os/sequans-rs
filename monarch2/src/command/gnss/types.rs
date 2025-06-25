@@ -1,5 +1,40 @@
-use atat::atat_derive::{AtatEnum, AtatLen};
-use serde::{Deserialize, Serialize, Serializer};
+use core::fmt::Write;
+
+use atat::{AtatLen, atat_derive::AtatEnum};
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
+pub struct QuotedF32(pub f32);
+
+impl AtatLen for QuotedF32 {
+    const LEN: usize = f32::LEN + 2;
+}
+
+impl<'de> Deserialize<'de> for QuotedF32 {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let s: &str = Deserialize::deserialize(deserializer)?;
+        let num = s
+            .trim_matches('"')
+            .parse()
+            .map_err(serde::de::Error::custom)?;
+        Ok(QuotedF32(num))
+    }
+}
+
+impl Serialize for QuotedF32 {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let mut buf: heapless::String<{ Self::LEN }> = heapless::String::new();
+        write!(&mut buf, "{}", self.0).map_err(serde::ser::Error::custom)?;
+        serializer.serialize_str(&buf)
+    }
+}
 
 #[derive(Clone, PartialEq, AtatEnum, Default)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
@@ -81,17 +116,13 @@ impl Serialize for ProgramGnssAction {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, AtatLen, Serialize, Deserialize)]
-#[cfg_attr(feature = "defmt", derive(defmt::Format))]
-pub struct Meters(pub f32);
-
 #[cfg(test)]
 mod tests {
     use super::*;
     use atat::serde_at::ser::to_slice;
 
     #[test]
-    fn test_pdp_type() {
+    fn program_gnss_action_serialization() {
         let options = atat::serde_at::SerializeOptions {
             value_sep: false,
             ..atat::serde_at::SerializeOptions::default()
