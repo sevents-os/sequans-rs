@@ -1,6 +1,6 @@
 [package]
 name = "monarch2"
-version = "0.1.0-beta.0"
+version = "0.1.0-beta.1"
 description = "A driver crate for the Sequans Monarch 2 Platform chips."
 authors.workspace = true
 keywords.workspace = true
