@@ -3,6 +3,8 @@ use heapless::String;
 use responses::Configuration;
 use types::{Resume, SslTlsVersion, StorageId};
 
+use crate::types::Nullable;
+
 pub mod responses;
 pub mod types;
 
@@ -10,7 +12,8 @@ pub mod types;
 ///
 /// A security profile is identified by a unique ID <spld>. Up to 6 security profiles can be configured. Each security profile cover the following SSL/LS connections properties:
 #[derive(Clone, AtatCmd)]
-#[at_cmd("+SQNSPCFG", Configuration)]
+#[at_cmd("+SQNSPCFG", Configuration, timeout = 1000)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct Configure {
     /// Security profile identifier.
     #[at_arg(position = 0)]
@@ -20,15 +23,21 @@ pub struct Configure {
     #[at_arg(position = 1)]
     pub version: SslTlsVersion,
 
+    /// The list of the available cipher suites, coded as 16-bit hexadecimal "Ox" prefixed IANA numbers, separated by semicolons. An empty string means 'any of the supported suites'.
+    ///
+    /// Cipher suites are identified by their IANA (Internet Assigned Numbers Authority) TLS Cipher Suite Registry number.
+    ///
+    /// The factory default value is an empty string, any of the supported cipher can be used.
+    ///
     /// Example: <cipherSpecs>="0x8C;0x8D;0XAE;0xAF"
     ///
     /// Warning: If the remote server supports none of the cipher suites configured in the ‹cipherSpecs> list, the handshake fails.
     ///
-    /// TODO: use CipherSuite enum
+    // TODO: use CipherSuite enum
     #[at_arg(position = 2)]
     pub cipher_specs: String<256>,
 
-    /// Bit field: 8 bits wide (00. . FF): Server certificate validation.
+    /// Bit field: 8 bits wide (00..FF): Server certificate validation.
     ///
     /// Configuration bits:
     ///
@@ -42,13 +51,13 @@ pub struct Configure {
     #[at_arg(position = 3)]
     pub cert_valid_level: u8,
 
-    /// Integer: 0.19: Client certificate ID,
+    /// Integer: 0..19: Client certificate ID,
     ///
     /// The client certificate serves to authenticate the client when mutual authentication is requested. The client certificate must be imported with Write Data in NVM: AT+SQNSNVW (on page 71) command.
     ///
     /// When this parameter is omitted (default), no certificate is referenced.
     #[at_arg(position = 4)]
-    pub ca_cert_id: u8,
+    pub ca_cert_id: Nullable<u8>,
 
     /// Integer: 0..19: Client certificate ID,
     ///
@@ -56,7 +65,7 @@ pub struct Configure {
     ///
     /// When this parameter is omitted (default), no certificate is referenced.
     #[at_arg(position = 5)]
-    pub client_cert_id: u8,
+    pub client_cert_id: Nullable<u8>,
 
     /// Integer: 0..19: Client private key ID.
     ///
@@ -66,7 +75,7 @@ pub struct Configure {
     ///
     /// Note: Password protected keys are not supported.
     #[at_arg(position = 6)]
-    pub client_private_key_id: u8,
+    pub client_private_key_id: Nullable<u8>,
 
     /// String. Pre-shared key used for connection (when a TLS_PSK_* cipher suite is used). The value must be specified as a string of hexadecimal numbers (e.g. "734c61425224655f...")
     ///

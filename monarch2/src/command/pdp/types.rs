@@ -1,9 +1,10 @@
-use atat::atat_derive::AtatEnum;
+use atat::{AtatLen, atat_derive::AtatEnum};
 use serde::{Deserialize, Deserializer, Serialize, Serializer, de};
 
 /// The supported packet data protocol header compression mechanisms.
 #[derive(Clone, PartialEq, AtatEnum, Default)]
 #[at_enum(u8)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum PDPHComp {
     #[default]
     Off = 0,
@@ -17,6 +18,7 @@ pub enum PDPHComp {
 /// The supported packet data protocol data compression mechanisms.
 #[derive(Clone, PartialEq, AtatEnum, Default)]
 #[at_enum(u8)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum PDPDComp {
     #[default]
     Off = 0,
@@ -28,6 +30,7 @@ pub enum PDPDComp {
 
 #[derive(Clone, PartialEq, AtatEnum, Default)]
 #[at_enum(u8)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum PDPIPv4Alloc {
     #[default]
     NAS = 0,
@@ -37,6 +40,7 @@ pub enum PDPIPv4Alloc {
 
 #[derive(Clone, PartialEq, AtatEnum, Default)]
 #[at_enum(u8)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum PDPRequestType {
     /// PDP context is for new PDP context establishment or for handover from a non-3GPP access network (how the MT decides whether the PDP context is for new PDP context establishment or for handover is implementation specific)
     #[default]
@@ -54,6 +58,7 @@ pub enum PDPRequestType {
 /// The supported types of P-CSCF discovery in a packet data context.
 #[derive(Clone, PartialEq, AtatEnum, Default)]
 #[at_enum(u8)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum PDPPCSCF {
     #[default]
     Auto = 0,
@@ -71,6 +76,10 @@ pub enum PDPType {
     OSPIH,
     PPP,
     X25,
+}
+
+impl AtatLen for PDPType {
+    const LEN: usize = 8;
 }
 
 impl Serialize for PDPType {

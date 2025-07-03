@@ -11,20 +11,6 @@ use embassy_sync::{
 use heapless::String;
 use static_cell::StaticCell;
 
-use crate::{
-    Bool,
-    command::{
-        self, Urc,
-        device::{GetOperatingMode, SetOperatingMode, types::RAT},
-        mobile_equipment::{SetFunctionality, types::FunctionalMode},
-        mqtt::{self, types::MQTTStatusCode},
-        network::{PLMNSelection, types::NetworkRegistrationState},
-        pdp::DefinePDPContext,
-        system_features::{ConfigureCEREGReports, ConfigureCMEErrorReports},
-    },
-    error::Error,
-    nvm, ssl_tls,
-};
 #[cfg(feature = "gm02sp")]
 use crate::{
     Reserved,
@@ -35,6 +21,16 @@ use crate::{
             types::FixSensitivity, urc::GnssFixReady,
         },
     },
+};
+use crate::{
+    command::{
+        self, Urc, device, mobile_equipment, mqtt,
+        network::{self, types::NetworkRegistrationState},
+        nvm, pdp, ssl_tls,
+        system_features::{ConfigureCEREGReports, ConfigureCMEErrorReports},
+    },
+    error::Error,
+    types::Bool,
 };
 use embassy_time::{Duration, Timer, with_timeout};
 
@@ -210,13 +206,13 @@ where
         Ok(())
     }
 
-    pub async fn get_operation_mode(&mut self) -> Result<RAT, Error> {
-        let res = self.send(&GetOperatingMode).await?;
+    pub async fn get_operation_mode(&mut self) -> Result<device::types::RAT, Error> {
+        let res = self.send(&device::GetOperatingMode).await?;
         Ok(res.rat)
     }
 
-    pub async fn set_opeartion_mode(&mut self, mode: RAT) -> Result<(), Error> {
-        self.send(&SetOperatingMode { mode }).await?;
+    pub async fn set_opeartion_mode(&mut self, mode: device::types::RAT) -> Result<(), Error> {
+        self.send(&device::SetOperatingMode { mode }).await?;
         Ok(())
     }
 
@@ -226,7 +222,7 @@ where
     }
 
     pub async fn define_pdp_context(&mut self) -> Result<(), Error> {
-        self.send(&DefinePDPContext {
+        self.send(&pdp::DefinePDPContext {
             cid: 1,
             pdp_type: command::pdp::types::PDPType::IP,
             apn: String::try_from("").unwrap(),
@@ -247,8 +243,11 @@ where
         Ok(())
     }
 
-    pub async fn set_op_state(&mut self, mode: FunctionalMode) -> Result<(), Error> {
-        self.send(&SetFunctionality {
+    pub async fn set_op_state(
+        &mut self,
+        mode: mobile_equipment::types::FunctionalMode,
+    ) -> Result<(), Error> {
+        self.send(&mobile_equipment::SetFunctionality {
             fun: mode,
             rst: None,
         })
@@ -270,10 +269,11 @@ where
     /// This function will connect the modem to the LTE network. This function will
     /// block until the modem is attached.
     pub async fn lte_connect(&mut self) -> Result<(), Error> {
-        self.set_op_state(FunctionalMode::Full).await?;
+        self.set_op_state(mobile_equipment::types::FunctionalMode::Full)
+            .await?;
 
         //  Set the network operator selection to automatic
-        self.send(&PLMNSelection {
+        self.send(&network::PLMNSelection {
             mode: command::network::types::NetworkSelectionMode::Automatic,
             ..Default::default()
         })
@@ -308,6 +308,41 @@ where
         }
 
         Ok(())
+    }
+}
+
+impl<'sub, AtCl, const N: usize, const L: usize> Modem<'sub, AtCl, N, L>
+where
+    AtCl: AtatClient,
+{
+    pub async fn get_time(&mut self) -> Result<device::responses::Clock, Error> {
+        // Even with valid assistance data the system clock could be invalid
+        let mut clock = self.send(&GetClock).await?;
+
+        if clock.time.0.timestamp().is_zero() {
+            debug!("Clock time out of sync, synchronizing");
+
+            // The system clock is invalid, connect to LTE network to sync time
+            self.lte_connect().await?;
+
+            // Wait for the modem to synchronize time with the LTE network, try 5 times
+            // with a delay of 500ms.
+            for _ in 0..5 {
+                Timer::after(Duration::from_millis(500)).await;
+                clock = self.send(&GetClock).await?;
+                if !clock.time.0.timestamp().is_zero() {
+                    break;
+                }
+            }
+
+            self.lte_disconnect().await?;
+
+            if clock.time.0.timestamp().is_zero() {
+                return Err(Error::ClockSynchronization);
+            }
+        };
+
+        Ok(clock)
     }
 }
 
@@ -393,31 +428,9 @@ where
     pub async fn update_gnss_asistance(&mut self) -> Result<(), Error> {
         self.lte_disconnect().await?;
 
-        // Even with valid assistance data the system clock could be invalid
-        let mut clock = self.send(&GetClock).await?;
-
-        if clock.time.0.timestamp().is_zero() {
-            debug!("Clock time out of sync, synchronizing");
-
-            // The system clock is invalid, connect to LTE network to sync time
-            self.lte_connect().await?;
-
-            // Wait for the modem to synchronize time with the LTE network, try 5 times
-            // with a delay of 500ms.
-            for _ in 0..5 {
-                Timer::after(Duration::from_millis(500)).await;
-                clock = self.send(&GetClock).await?;
-                if !clock.time.0.timestamp().is_zero() {
-                    break;
-                }
-            }
-
-            self.lte_disconnect().await?;
-
-            if clock.time.0.timestamp().is_zero() {
-                return Err(Error::ClockSynchronization);
-            }
-        };
+        // Even with valid assistance data the system clock could be invalid,
+        // get_time ensures the device synchronizes the clock first.
+        self.get_time().await?;
 
         // Check the availability of assistance data
         self.check_assistance_data().await?;
@@ -493,18 +506,13 @@ pub struct UsernamePassword {
     pub password: String<256>,
 }
 
-#[derive(Clone, Debug, PartialEq)]
-pub struct SecurityProfile {
-    /// The index of the secure profile previously set with the SSL / TLS Security Profile Configuration.
-    pub id: u8,
-}
-
 // TODO: replace enum with dedicated methods.
 #[derive(Clone, Debug, PartialEq)]
 #[allow(clippy::large_enum_variant)]
 pub enum MqttAuth {
     UsernamePassword(UsernamePassword),
-    SecurityProfile(SecurityProfile),
+    /// The index of the secure profile previously set with the SSL / TLS Security Profile Configuration.
+    SecurityProfile(u8),
 }
 
 impl<'sub, AtCl, const N: usize, const L: usize> Modem<'sub, AtCl, N, L>
@@ -521,23 +529,23 @@ where
                 &mqtt::Configure {
                     id: 0,
                     client_id,
-                    username: Some(username),
-                    password: Some(password),
+                    username,
+                    password,
                     sp_id: None,
                 }
             }
-            Some(MqttAuth::SecurityProfile(SecurityProfile { id })) => &mqtt::Configure {
+            Some(MqttAuth::SecurityProfile(id)) => &mqtt::Configure {
                 id: 0,
                 client_id,
-                username: None,
-                password: None,
+                username: String::new(),
+                password: String::new(),
                 sp_id: Some(id),
             },
             None => &mqtt::Configure {
                 id: 0,
                 client_id,
-                username: None,
-                password: None,
+                username: String::new(),
+                password: String::new(),
                 sp_id: None,
             },
         };
@@ -547,13 +555,13 @@ where
         Ok(())
     }
 
-    pub async fn mqtt_connect(&mut self, host: &str) -> Result<(), Error> {
+    pub async fn mqtt_connect(&mut self, host: &str, port: Option<u32>) -> Result<(), Error> {
         self.lte_connect().await?;
 
         self.send(&mqtt::Connect {
             id: 0,
             host,
-            port: None,
+            port,
             keepalive: None,
         })
         .await?;
@@ -562,7 +570,7 @@ where
             with_timeout(Duration::from_secs(30), self.state.mqtt_connected.wait()).await?;
 
         match connected.rc {
-            MQTTStatusCode::Success => Ok(()),
+            mqtt::types::MQTTStatusCode::Success => Ok(()),
             status => {
                 error!("MQTT connect error: {:?}", connected.rc);
                 Err(Error::MQTT(status))
@@ -652,18 +660,23 @@ where
     pub async fn configure_tls_profile(
         &mut self,
         sp_id: u8,
-        ca_cert_id: u8,
-        client_cert_id: u8,
-        client_private_key_id: u8,
+        ca_cert_id: Option<u8>,
+        client_cert_id: Option<u8>,
+        client_private_key_id: Option<u8>,
     ) -> Result<(), Error> {
+        assert!(
+            (1..=6).contains(&sp_id),
+            "Security profile index must be between in the range of 1 to 6"
+        );
+
         self.send(&ssl_tls::Configure {
             sp_id,
-            version: ssl_tls::types::SslTlsVersion::Tls12,
+            version: ssl_tls::types::SslTlsVersion::Tls13,
             cipher_specs: String::new(),
-            cert_valid_level: 0,
-            ca_cert_id,
-            client_cert_id,
-            client_private_key_id,
+            cert_valid_level: 0b111,
+            ca_cert_id: ca_cert_id.into(),
+            client_cert_id: client_cert_id.into(),
+            client_private_key_id: client_private_key_id.into(),
             psk: String::new(),
             psk_identity: String::new(),
             storage_id: ssl_tls::types::StorageId::NVM,

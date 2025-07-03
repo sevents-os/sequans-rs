@@ -1,6 +1,6 @@
 use atat::atat_derive::AtatResp;
 
-use crate::Bool;
+use crate::types::Bool;
 
 #[derive(Debug, Clone, AtatResp)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]

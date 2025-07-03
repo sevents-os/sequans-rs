@@ -1,13 +1,11 @@
 [workspace]
+members = ["monarch2"]
 resolver = "2"
-members = [
-    "monarch2",
-]
 
 [workspace.package]
-edition = "2024"
-categories = ["embedded", "no-std"]
-keywords = ["sequans", "monarch2", "embedded-hal-driver"]
-repository = "https://github.com/sevents-os/sequans-rs"
-license = "Apache-2.0"
 authors = ["Matous Dzivjak <matousdzivjak@gmail.com>"]
+categories = ["embedded", "no-std"]
+edition = "2024"
+keywords = ["sequans", "monarch2", "embedded-hal-driver"]
+license = "Apache-2.0"
+repository = "https://github.com/sevents-os/sequans-rs"

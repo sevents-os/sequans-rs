@@ -1,6 +1,8 @@
 use atat::atat_derive::AtatResp;
 use heapless::String;
 
+use crate::types::Nullable;
+
 use super::types::{Resume, SslTlsVersion, StorageId};
 
 #[derive(Clone, AtatResp)]
@@ -49,7 +51,7 @@ pub struct Configuration {
     ///
     /// When this parameter is omitted (default), no certificate is referenced.
     #[at_arg(position = 5)]
-    pub client_cert_id: u8,
+    pub client_cert_id: Nullable<u8>,
 
     /// Integer: 0..19: Client private key ID.
     ///
@@ -59,13 +61,13 @@ pub struct Configuration {
     ///
     /// Note: Password protected keys are not supported.
     #[at_arg(position = 6)]
-    pub client_private_key_id: u8,
+    pub client_private_key_id: Nullable<u8>,
 
     /// String. Pre-shared key used for connection (when a TLS_PSK_* cipher suite is used). The value must be specified as a string of hexadecimal numbers (e.g. "734c61425224655f...")
     ///
     /// The factory default value is an empty string, meaning no pre-shared key defined.
     #[at_arg(position = 7)]
-    pub psk: String<64>,
+    pub psk: Option<String<64>>,
 
     /// Pre-shared key identity used for connection (when a TLS_PSK_* cipher suite is used).
     ///

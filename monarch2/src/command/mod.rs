@@ -1,8 +1,10 @@
 use atat::{
     AtatLen,
-    atat_derive::{AtatCmd, AtatEnum, AtatResp, AtatUrc},
+    atat_derive::{AtatCmd, AtatResp, AtatUrc},
 };
 use serde::{Deserialize, Deserializer, Serialize, Serializer, de};
+
+pub mod types;
 
 pub mod coap;
 pub mod device;
@@ -62,30 +64,6 @@ pub enum Urc {
 
     #[at_urc("+SQNCOAPCONNECTED")]
     CoapConnected(coap::urc::Connected),
-}
-
-/// Custom boolean needed for communication with the Sequans Monarch 2 chips.
-/// The ATAT commands use 0 and 1 to represent booleans which isn't compatible
-/// with atat and thus require custom implementation.
-#[derive(Clone, Debug, PartialEq, AtatEnum, Default)]
-#[cfg_attr(feature = "defmt", derive(defmt::Format))]
-#[at_enum(u8)]
-pub enum Bool {
-    #[default]
-    False = 0,
-    True = 1,
-}
-
-impl From<bool> for Bool {
-    fn from(b: bool) -> Self {
-        if b { Bool::True } else { Bool::False }
-    }
-}
-
-impl From<Bool> for bool {
-    fn from(b: Bool) -> Self {
-        b == Bool::True
-    }
 }
 
 /// Used for reserved fields that are currently ignored but can't be skipped

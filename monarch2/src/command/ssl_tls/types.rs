@@ -2,6 +2,7 @@ use atat::atat_derive::AtatEnum;
 
 #[derive(Clone, PartialEq, AtatEnum, Default)]
 #[at_enum(u8)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum SslTlsVersion {
     Tls10 = 0,
     Tls11 = 1,
@@ -13,6 +14,7 @@ pub enum SslTlsVersion {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(u16)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum CipherSuite {
     SslRsaWith3DesEdeCbcSha = 0x000A,
     TlsAes128Ccm8Sha256 = 0x1305,
@@ -61,6 +63,7 @@ pub enum CipherSuite {
 /// Private key storage id used to identify whether key stored on NVM or HCE.
 #[derive(Clone, PartialEq, AtatEnum, Default)]
 #[at_enum(u8)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum StorageId {
     /// Embedded non-volatile memory (see AT+SQNSNVW)
     #[default]
@@ -74,6 +77,7 @@ pub enum StorageId {
 /// Session resumption feature enable.
 #[derive(Clone, PartialEq, AtatEnum, Default)]
 #[at_enum(u8)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum Resume {
     /// Session resumption feature disabled (default)
     #[default]

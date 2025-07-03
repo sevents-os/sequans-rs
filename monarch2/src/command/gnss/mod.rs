@@ -5,9 +5,9 @@ use types::{
     UrcNotificationSetting,
 };
 
-use crate::gnss::types::QuotedF32;
+use crate::{gnss::types::QuotedF32, types::Bool};
 
-use super::{Bool, NoResponse, Reserved};
+use super::{NoResponse, Reserved};
 
 pub mod responses;
 pub mod types;

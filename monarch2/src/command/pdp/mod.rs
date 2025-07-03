@@ -4,7 +4,9 @@ use types::{PDPDComp, PDPHComp, PDPIPv4Alloc, PDPPCSCF, PDPRequestType, PDPType}
 
 pub mod types;
 
-use super::{Bool, NoResponse};
+use crate::types::Bool;
+
+use super::NoResponse;
 
 /// Defines a PDP context.
 ///
@@ -21,7 +23,7 @@ pub struct DefinePDPContext {
     pub cid: u8,
 
     /// PDP Type: typically "IP", "IPV6", or "IPV4V6".
-    #[at_arg(position = 1, len = 12)]
+    #[at_arg(position = 1)]
     pub pdp_type: PDPType,
 
     /// Cellular APN for SIM card. Leave empty to autodetect APN.

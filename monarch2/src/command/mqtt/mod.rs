@@ -38,11 +38,11 @@ pub struct Configure<'a> {
 
     /// Username for broker authentication.
     #[at_arg(position = 2)]
-    pub username: Option<String<256>>,
+    pub username: String<256>,
 
     /// Password for broker authentication.
     #[at_arg(position = 3)]
-    pub password: Option<String<256>>,
+    pub password: String<256>,
 
     /// The index of the secure profile previously set with the SSL / TLS Security Profile Configuration.
     #[at_arg(position = 4)]
