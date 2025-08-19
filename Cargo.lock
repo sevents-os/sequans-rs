@@ -4,9 +4,9 @@ version = 4
 
 [[package]]
 name = "atat"
-version = "0.24.0"
+version = "0.24.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4af4105c01c84f9bf3edea2326ecfbc538ef661662fa0d20da1445bc0af90d3e"
+checksum = "f32b6cfb3965b910406a5ee0dab42c604da8b52964baf85d297b3cefc35dac7e"
 dependencies = [
  "atat_derive",
  "defmt 0.3.100",
@@ -26,9 +26,9 @@ dependencies = [
 
 [[package]]
 name = "atat_derive"
-version = "0.24.0"
+version = "0.24.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ab4b428f8d5908980a1977f9c8b77fb81787525ff38400b8322c890800501c81"
+checksum = "cf57beebdfb6a47737e95b1e91b9887f480c6bb3cc2bd0ac75a4cbc70fc08d36"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -138,16 +138,16 @@ dependencies = [
 
 [[package]]
 name = "embassy-sync"
-version = "0.7.0"
+version = "0.7.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cef1a8a1ea892f9b656de0295532ac5d8067e9830d49ec75076291fd6066b136"
+checksum = "03c372c90d3525a648684fa1c131decaf7d9ff181030db09c876fad6043443b9"
 dependencies = [
  "cfg-if",
  "critical-section",
  "defmt 1.0.1",
  "embedded-io-async",
+ "futures-core",
  "futures-sink",
- "futures-util",
  "heapless",
 ]
 
@@ -366,7 +366,7 @@ version = "0.1.0-beta.1"
 dependencies = [
  "atat",
  "defmt 1.0.1",
- "embassy-sync 0.7.0",
+ "embassy-sync 0.7.1",
  "embassy-time",
  "heapless",
  "jiff",
@@ -487,9 +487,9 @@ dependencies = [
 
 [[package]]
 name = "serde_at"
-version = "0.24.0"
+version = "0.24.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6374ffea8f238aab82a26c6c0bcc010916310cfa8f58c55280fae90fd0ae5f2d"
+checksum = "098c152d53f5986dbd5fd6225164bda0986cfaa3b49cfaa1b364ce494bf67ed7"
 dependencies = [
  "num-traits",
  "serde",
