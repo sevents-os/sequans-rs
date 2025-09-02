@@ -4,19 +4,19 @@ version = 4
 
 [[package]]
 name = "atat"
-version = "0.24.0"
+version = "0.24.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4af4105c01c84f9bf3edea2326ecfbc538ef661662fa0d20da1445bc0af90d3e"
+checksum = "f32b6cfb3965b910406a5ee0dab42c604da8b52964baf85d297b3cefc35dac7e"
 dependencies = [
  "atat_derive",
  "defmt 0.3.100",
  "embassy-futures",
  "embassy-sync 0.6.2",
- "embassy-time",
+ "embassy-time 0.4.0",
  "embedded-io",
  "embedded-io-async",
  "futures",
- "heapless",
+ "heapless 0.8.0",
  "heapless-bytes",
  "log",
  "nom",
@@ -26,9 +26,9 @@ dependencies = [
 
 [[package]]
 name = "atat_derive"
-version = "0.24.0"
+version = "0.24.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ab4b428f8d5908980a1977f9c8b77fb81787525ff38400b8322c890800501c81"
+checksum = "cf57beebdfb6a47737e95b1e91b9887f480c6bb3cc2bd0ac75a4cbc70fc08d36"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -133,22 +133,22 @@ dependencies = [
  "embedded-io-async",
  "futures-sink",
  "futures-util",
- "heapless",
+ "heapless 0.8.0",
 ]
 
 [[package]]
 name = "embassy-sync"
-version = "0.7.0"
+version = "0.7.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cef1a8a1ea892f9b656de0295532ac5d8067e9830d49ec75076291fd6066b136"
+checksum = "73974a3edbd0bd286759b3d483540f0ebef705919a5f56f4fc7709066f71689b"
 dependencies = [
  "cfg-if",
  "critical-section",
  "defmt 1.0.1",
  "embedded-io-async",
+ "futures-core",
  "futures-sink",
- "futures-util",
- "heapless",
+ "heapless 0.8.0",
 ]
 
 [[package]]
@@ -159,7 +159,6 @@ checksum = "f820157f198ada183ad62e0a66f554c610cdcd1a9f27d4b316358103ced7a1f8"
 dependencies = [
  "cfg-if",
  "critical-section",
- "defmt 0.3.100",
  "document-features",
  "embassy-time-driver",
  "embedded-hal 0.2.7",
@@ -169,10 +168,27 @@ dependencies = [
 ]
 
 [[package]]
-name = "embassy-time-driver"
-version = "0.2.0"
+name = "embassy-time"
+version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8d45f5d833b6d98bd2aab0c2de70b18bfaa10faf661a1578fd8e5dfb15eb7eba"
+checksum = "f4fa65b9284d974dad7a23bb72835c4ec85c0b540d86af7fc4098c88cff51d65"
+dependencies = [
+ "cfg-if",
+ "critical-section",
+ "defmt 1.0.1",
+ "document-features",
+ "embassy-time-driver",
+ "embedded-hal 0.2.7",
+ "embedded-hal 1.0.0",
+ "embedded-hal-async",
+ "futures-core",
+]
+
+[[package]]
+name = "embassy-time-driver"
+version = "0.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a0a244c7dc22c8d0289379c8d8830cae06bb93d8f990194d0de5efb3b5ae7ba6"
 dependencies = [
  "document-features",
 ]
@@ -304,12 +320,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "heapless"
+version = "0.9.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b1edcd5a338e64688fbdcb7531a846cfd3476a54784dcb918a0844682bc7ada5"
+dependencies = [
+ "hash32",
+ "stable_deref_trait",
+]
+
+[[package]]
 name = "heapless-bytes"
 version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a6f26607d0ab577d678785d01f5566bf43d965e4e669f1b9723213b3fe8052ab"
 dependencies = [
- "heapless",
+ "heapless 0.8.0",
  "serde",
 ]
 
@@ -366,9 +392,9 @@ version = "0.1.0-beta.1"
 dependencies = [
  "atat",
  "defmt 1.0.1",
- "embassy-sync 0.7.0",
- "embassy-time",
- "heapless",
+ "embassy-sync 0.7.2",
+ "embassy-time 0.5.0",
+ "heapless 0.9.1",
  "jiff",
  "log",
  "serde",
@@ -487,9 +513,9 @@ dependencies = [
 
 [[package]]
 name = "serde_at"
-version = "0.24.0"
+version = "0.24.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6374ffea8f238aab82a26c6c0bcc010916310cfa8f58c55280fae90fd0ae5f2d"
+checksum = "098c152d53f5986dbd5fd6225164bda0986cfaa3b49cfaa1b364ce494bf67ed7"
 dependencies = [
  "num-traits",
  "serde",
