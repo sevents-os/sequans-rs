@@ -16,7 +16,7 @@ dependencies = [
  "embedded-io",
  "embedded-io-async",
  "futures",
- "heapless",
+ "heapless 0.8.0",
  "heapless-bytes",
  "log",
  "nom",
@@ -133,7 +133,7 @@ dependencies = [
  "embedded-io-async",
  "futures-sink",
  "futures-util",
- "heapless",
+ "heapless 0.8.0",
 ]
 
 [[package]]
@@ -148,7 +148,7 @@ dependencies = [
  "embedded-io-async",
  "futures-sink",
  "futures-util",
- "heapless",
+ "heapless 0.8.0",
 ]
 
 [[package]]
@@ -304,12 +304,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "heapless"
+version = "0.9.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "25ba4bd83f9415b58b4ed8dc5714c76e626a105be4646c02630ad730ad3b5aa4"
+dependencies = [
+ "hash32",
+ "stable_deref_trait",
+]
+
+[[package]]
 name = "heapless-bytes"
 version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a6f26607d0ab577d678785d01f5566bf43d965e4e669f1b9723213b3fe8052ab"
 dependencies = [
- "heapless",
+ "heapless 0.8.0",
  "serde",
 ]
 
@@ -368,7 +378,7 @@ dependencies = [
  "defmt 1.0.1",
  "embassy-sync 0.7.0",
  "embassy-time",
- "heapless",
+ "heapless 0.9.3",
  "jiff",
  "log",
  "serde",
