@@ -15,7 +15,7 @@ doctest = true
 
 [dependencies]
 atat = { version = "0.24.0", features = ["derive", "custom-error-messages"] }
-embassy-sync = { version = "0.7.0" }
+embassy-sync = { version = "0.8.0" }
 embassy-time = { version = "0.4.0" }
 heapless = { version = "0.8.0", default-features = false }
 jiff = { version = "0.2.14", default-features = false, features = ["perf-inline", "serde"] }
